@@ -1,0 +1,20 @@
+{
+  "name": "atomic-nft",
+  "version": "1.0.0",
+  "description": "",
+  "type": "module",
+  "scripts": {
+    "build": "npx rollup -c",
+    "built-ts": "npx tsc",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "private": true,
+  "devDependencies": {
+    "@rollup/plugin-typescript": "^11.1.0",
+    "rollup": "^3.20.6",
+    "tslib": "^2.5.0",
+    "typescript": "^5.0.4"
+  }
+}
