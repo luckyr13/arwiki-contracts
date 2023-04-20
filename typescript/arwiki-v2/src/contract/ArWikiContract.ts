@@ -12,7 +12,6 @@ import {
 } from '../interfaces/PSTCommunityContractState';
 import { _isValidArweaveAddress } from './ContractUtils';
 
-
 export class ArWikiContract 
 	extends PSTCommunityContract
 	implements ArWikiContractBase {
@@ -29,21 +28,13 @@ export class ArWikiContract
   public balance(target?: string): {
     result: {target: string, balance: number, ticker: string}
   } {
-    const vault = this.state.vault;
     const stakes = this.state.stakes;
 
-    // Unlocked balance
-    const { result } = this.unlockedBalance(target);
+    // Unlocked and locked balance
+    const { result } = super.balance(target);
     let balance = result.balance;
     let ticker = result.ticker;
     target = result.target;
-
-    // Add locked balance (vault)
-    if (target in vault) {
-      for (const v of vault[target]) {
-        balance += v.balance;
-      }
-    }
 
     // Add staked balance (stakes)
     const stakingDict = stakes[target] ? stakes[target] : {};
@@ -64,6 +55,154 @@ export class ArWikiContract
     slug: string,
     category: string
   ): { state:ArWikiContractState } {
+    const caller = this.caller;
+    const roles = this.state.roles;
+    const settings = this.state.settings;
+    const balances = this.state.balances;
+    const vault = this.state.vault;
+    const stakes = this.state.stakes;
+    const order = 0;
+    const role = caller in roles ? roles[caller] : "";
+    const start = +SmartWeave.block.height;
+    const pageApprovalLength = +settings.pageApprovalLength;
+    const end = start + pageApprovalLength;
+    const balance = balances[caller];
+    let totalSupply = this._calculate_total_supply(vault, balances, stakes);
+    const value = +pageValue;
+    const pageSlugMaxLength = 70;
+    const pages = this.state.pages;
+    const categories = this.state.categories;
+
+    ContractAssert(
+      _isValidArweaveAddress(author),
+      "Invalid author."
+    );
+    ContractAssert(
+      Number.isInteger(value) && 
+      value > 0,
+      '"pageValue" must be a positive integer > 0.'
+    );
+    ContractAssert(
+      Number.isInteger(order) && 
+      order >= 0,
+      '"order" must be a positive integer >= 0.'
+    );
+    ContractAssert(
+      role.trim().toUpperCase() === "MODERATOR",
+      "Caller must be an admin."
+    );
+    ContractAssert(
+      typeof langCode === 'string' &&
+      !!langCode.trim().length,
+      "LangCode must be specified."
+    );
+    ContractAssert(
+      typeof slug === 'string' &&
+      !!slug.trim().length,
+      "Slug must be specified."
+    );
+    ContractAssert(
+      slug.trim().length <= pageSlugMaxLength,
+      `slug is longer than max allowed length ${pageSlugMaxLength}.`
+    );
+    ContractAssert(
+      typeof category === 'string' &&
+      !!category.trim().length,
+      `Category must be specified.`
+    );
+    ContractAssert(
+      typeof pageTX === 'string' &&
+      !!pageTX.trim().length,
+      `PageTX must be specified.`
+    );
+    ContractAssert(
+      _isValidArweaveAddress(pageTX),
+      "Invalid pageTX."
+    );
+    ContractAssert(
+      caller in vault,
+      "Caller needs to have locked balances."
+    );
+    
+    let vaultBalance = this._get_vaultBalance(vault, caller, end);
+    ContractAssert(
+      vaultBalance >= value,
+      `Caller doesn't have ${value} or more tokens locked for enough time (start:${start}, end:${end}, vault:${vaultBalance}).`
+    );
+    ContractAssert(
+      Object.prototype.hasOwnProperty.call(pages, langCode),
+      "Invalid LangCode (pages)!"
+    );
+    ContractAssert(
+      Object.prototype.hasOwnProperty.call(categories, langCode),
+      "Invalid LangCode (categories)!"
+    );
+    ContractAssert(
+      !Object.prototype.hasOwnProperty.call(pages[langCode], slug),
+      "Slug already taken!"
+    );
+    ContractAssert(
+      Object.prototype.hasOwnProperty.call(categories[langCode], category),
+      "Invalid Category!"
+    );
+    if (Object.prototype.hasOwnProperty.call(stakes, caller) &&
+        Object.prototype.hasOwnProperty.call(stakes[caller], langCode) &&
+        stakes[caller][langCode][slug]) {
+      throw new ContractError("User is already staking on this page");
+    }
+    ContractAssert(
+      !isNaN(balance) && balance >= value,
+      "Not enough balance."
+    );
+    ContractAssert(
+      Number.isSafeInteger(value) &&
+      Number.isSafeInteger(totalSupply + value),
+      "'value' too big."
+    );
+    // Write changes
+    balances[caller] -= value;
+    if (!Object.prototype.hasOwnProperty.call(stakes, caller)) {
+      stakes[caller] = {};
+    }
+    if (!Object.prototype.hasOwnProperty.call(stakes[caller], langCode)) {
+      stakes[caller][langCode] = {};
+    }
+    stakes[caller][langCode][slug] = value;
+    if (author in vault) {
+      vault[author].push({
+        balance: value,
+        end,
+        start,
+        slug,
+        lang: langCode,
+        action: "new"
+      });
+    } else {
+      vault[author] = [{
+        balance: value,
+        end,
+        start,
+        slug,
+        lang: langCode,
+        action: "new"
+      }];
+    }
+    pages[langCode][slug] = {
+      nft: "",
+      sponsor: caller,
+      value,
+      updates: [],
+      category: category,
+      order: order,
+      active: true,
+      showInMenu: false,
+      showInFooter: false,
+      showInMainPage: false
+    };
+
+    pages[langCode][slug].updates.push({
+      tx: pageTX, approvedBy: caller, at: start, value
+    });
 
   	return { state:this.state };
   }
@@ -73,24 +212,180 @@ export class ArWikiContract
     slug: string,
     pageValue: number
   ): { state:ArWikiContractState } {
+    const caller = this.caller;
+    const roles = this.state.roles;
+    const balances = this.state.balances;
+    const vault = this.state.vault;
+    const stakes = this.state.stakes;
+    const settings = this.state.settings;
+    const pages = this.state.pages;
+    const value = +pageValue;
+    const role = caller in roles ? roles[caller] : "";
+    const balance = +balances[caller];
+    const currentHeight = +SmartWeave.block.height;
+    let totalSupply = this._calculate_total_supply(vault, balances, stakes);
+    const pageApprovalLength = +settings.pageApprovalLength;
+    const end = currentHeight + pageApprovalLength;
+    ContractAssert(
+      typeof langCode === 'string' &&
+      !!langCode.trim().length,
+      "LangCode must be specified."
+    );
+    ContractAssert(
+      typeof slug === 'string' &&
+      !!slug.trim().length,
+      "Slug must be specified."
+    );
+    ContractAssert(
+      Object.prototype.hasOwnProperty.call(pages, langCode),
+      "Invalid LangCode."
+    );
+    ContractAssert(
+      Object.prototype.hasOwnProperty.call(pages[langCode], slug),
+      "Invalid slug."
+    );
+    ContractAssert(
+      Number.isInteger(value) && value > 0,
+      '"pageValue" must be a positive integer.'
+    );
+    ContractAssert(
+      !isNaN(balance) && balance >= value,
+      `Not enough balance :: ${balance} vs ${value}`
+    );
+    // if (!(caller in vault)) {
+    //  throw new ContractError("Caller needs to have locked balances.");
+    // }
+    // let vaultBalance = _get_vaultBalance(vault, caller, end);
+    // if (vaultBalance < value) {
+    //  throw new ContractError(`Caller doesn't have ${value} or more tokens locked for enough time  (start:${currentHeight}, end:${end}, vault:${vaultBalance}).`);
+    // }
+    ContractAssert(
+      Number.isSafeInteger(value) &&
+      Number.isSafeInteger(totalSupply + value),
+      "'value' too large."
+    );
+    
+    const previousSponsor = pages[langCode][slug].sponsor;
+    const previousValue = pages[langCode][slug].value;
+    if (Object.prototype.hasOwnProperty.call(stakes, caller) &&
+        Object.prototype.hasOwnProperty.call(stakes[caller], langCode) &&
+        stakes[caller][langCode][slug]) {
+      throw new ContractError("User is already staking for this page");
+    }
+    ContractAssert(
+      previousSponsor !== caller,
+      "Caller is already staking for this page"
+    );
+    ContractAssert(
+      value > previousValue,
+      "New page value must be greater than the previous one."
+    );
+
+    // Write changes
+    balances[caller] -= value;
+    if (Object.prototype.hasOwnProperty.call(balances, previousSponsor) &&
+      stakes[previousSponsor][langCode][slug]) {
+      balances[previousSponsor] += previousValue;
+      delete stakes[previousSponsor][langCode][slug];
+    }
+
+    if (!Object.prototype.hasOwnProperty.call(stakes, caller)) {
+      stakes[caller] = {};
+    }
+    if (!Object.prototype.hasOwnProperty.call(stakes[caller], langCode)) {
+      stakes[caller][langCode] = {};
+    }
+    stakes[caller][langCode][slug] = value;
+    pages[langCode][slug].sponsor = caller;
+    pages[langCode][slug].value = value;
+    pages[langCode][slug].active = true;
+
   	return { state:this.state };
   }
 
   stopPageSponsorshipAndDeactivatePage(langCode: string, slug: string): { state:ArWikiContractState } {
-  	return { state:this.state };
+  	const currentHeight = +SmartWeave.block.height;
+    const pages = this.state.pages;
+    const stakes = this.state.stakes;
+    const caller = this.caller;
+    const balances = this.state.balances;
+
+    ContractAssert(
+      typeof langCode === 'string' &&
+      !!langCode.trim().length,
+      "LangCode must be specified."
+    );
+    ContractAssert(
+      typeof slug === 'string' &&
+      !!slug.trim().length,
+      "Slug must be specified."
+    );
+    ContractAssert(
+      Object.prototype.hasOwnProperty.call(pages, langCode),
+      "Invalid LangCode."
+    );
+    ContractAssert(
+      Object.prototype.hasOwnProperty.call(pages[langCode], slug),
+      "Invalid slug."
+    );
+
+    if (!Object.prototype.hasOwnProperty.call(stakes, caller) ||
+        !Object.prototype.hasOwnProperty.call(stakes[caller], langCode) ||
+        !stakes[caller][langCode][slug]) {
+      throw new ContractError("User is not staking for this page");
+    }
+    const currentSponsor = pages[langCode][slug].sponsor;
+    const currentValue = stakes[currentSponsor][langCode][slug];
+
+    ContractAssert(
+      currentSponsor === caller,
+      "User is not the sponsor"
+    );
+
+    // Write changes
+    balances[currentSponsor] += currentValue;
+    delete stakes[currentSponsor][langCode][slug];
+
+    pages[langCode][slug].sponsor = '';
+    pages[langCode][slug].active = false;
+
+    return { state:this.state };
   }
 
-  balanceDetail(target: string|undefined): {result: {target:string, unlockedBalance:number, vaultBalance:number, stakingBalance:number, ticker:string}} {
+  balanceDetail(target?: string): {result: {target:string, unlockedBalance:number, vaultBalance:number, stakingBalance:number, ticker:string}} {
   	const caller = this.caller;
-  	const unlockedBalance = 0;
-  	const vaultBalance = 0;
-  	const stakingBalance = 0;
-  	const ticker = '';
+    const balances = this.state.balances;
+    const vault = this.state.vault;
+    const stakes = this.state.stakes;
+    let unlockedBalance = 0;
+    let vaultBalance = 0;
+    let stakingBalance = 0;
 
   	if (!target) {
   		target = this.caller;
   	}
-
+    ContractAssert(
+      typeof target === "string",
+      "Must specificy target to get balance for."
+    );
+    // Unlocked balance
+    if (target in balances) {
+      unlockedBalance = balances[target];
+    }
+    // Vault balance
+    if (target in vault && vault[target].length) {
+      try {
+        vaultBalance += vault[target].map((a) => a.balance).reduce((a, b) => a + b, 0);
+      } catch (e) {
+      }
+    }
+    // Staked balance
+    const stakingDict = stakes[target] ? stakes[target] : {};
+    for (const vLang of Object.keys(stakingDict)) {
+      for (const vSlug of Object.keys(stakingDict[vLang])) {
+        stakingBalance += stakes[target][vLang][vSlug];
+      }
+    }
   	return {result: {target, unlockedBalance, vaultBalance, stakingBalance, ticker}}
   }
 
@@ -102,61 +397,366 @@ export class ArWikiContract
     pageValue: number,
     category: string
   ): { state:ArWikiContractState } {
+    const roles = this.state.roles;
+    const caller = this.caller;
+    const settings = this.state.settings;
+    const vault = this.state.vault;
+    const role = caller in roles ? roles[caller] : "";
+    const currentHeight = +SmartWeave.block.height;
+    const pageApprovalLength = +settings.pageApprovalLength;
+    const end = currentHeight + pageApprovalLength;
+    const value = +pageValue;
+    const pages = this.state.pages;
+    const categories = this.state.categories;
+
+    if (!Number.isInteger(value) || value <= 0) {
+      throw new ContractError('"pageValue" must be a positive integer.');
+    }
+    if (typeof author !== 'string' || !author.trim().length) {
+      throw new ContractError("Author address must be specified");
+    }
+
+    ContractAssert(
+      typeof langCode === 'string' &&
+      !!langCode.trim().length,
+      "LangCode must be specified."
+    );
+    ContractAssert(
+      typeof slug === 'string' &&
+      !!slug.trim().length,
+      "Slug must be specified."
+    );
+    ContractAssert(
+      typeof updateTX === 'string' &&
+      !!updateTX.trim().length,
+      "updateTX must be specified."
+    );
+    ContractAssert(
+      typeof category === 'string' &&
+      !!category.trim().length,
+      "category must be specified."
+    );
+    ContractAssert(
+      Object.prototype.hasOwnProperty.call(pages, langCode),
+      "Invalid LangCode (pages)."
+    );
+    ContractAssert(
+      Object.prototype.hasOwnProperty.call(categories, langCode),
+      "Invalid LangCode (categories)."
+    );
+    ContractAssert(
+      Object.prototype.hasOwnProperty.call(pages[langCode], slug),
+      "Invalid slug."
+    );
+    ContractAssert(
+      Object.prototype.hasOwnProperty.call(categories[langCode], category),
+      "Invalid Category."
+    );
+    ContractAssert(
+      role.trim().toUpperCase() === "MODERATOR",
+      "Caller must be an admin."
+    );
+    ContractAssert(
+      pages[langCode][slug].active,
+      "Page is inactive."
+    );
+    ContractAssert(
+      caller in vault,
+      "Caller needs to have locked balances."
+    );
+   
+    let vaultBalance = this._get_vaultBalance(vault, caller, end);
+    ContractAssert(
+      vaultBalance >= value,
+      `Caller doesn't have ${value} or more tokens locked for enough time  (start:${currentHeight}, end:${end}, vault:${vaultBalance}).`
+    );
+
+    // Write changes
+    pages[langCode][slug].updates.push({
+      tx: updateTX, approvedBy: caller, at: currentHeight, value
+    });
+    pages[langCode][slug].category = category;
+    if (author in vault) {
+      vault[author].push({
+        balance: value,
+        end,
+        start: currentHeight,
+        slug,
+        lang: langCode,
+        action: "update"
+      });
+    } else {
+      vault[author] = [{
+        balance: value,
+        end,
+        start: currentHeight,
+        slug,
+        lang: langCode,
+        action: "update"
+      }];
+    }
+
   	return { state:this.state };
   }
 
-  public addLanguage(
-    langCode: string,
-    writingSystem: WritingSystem,
-    isoName: string,
-    nativeName: string
-  ): { state:ArWikiContractState } {
-  	return { state:this.state };
-  }
-
-  public updateLanguage(
+  public addUpdateLanguage(
+    method: string,
     langCode: string,
     writingSystem: WritingSystem,
     isoName: string,
     nativeName: string,
-    activeLang: boolean
+    activeLang?: boolean
   ): { state:ArWikiContractState } {
+    const caller = this.caller;
+    const roles = this.state.roles;
+    const settings = this.state.settings;
+    const balances = this.state.balances;
+    const vault = this.state.vault;
+    const languages = this.state.languages;
+    const pages = this.state.pages;
+    const categories = this.state.categories;
+    const langCodeLength = 2;
+    const langNameLength = 50;
+    langCode = langCode.trim().toLowerCase();
+    writingSystem = writingSystem.trim().toUpperCase() as WritingSystem;
+    isoName = isoName.trim();
+    nativeName = nativeName.trim();
+    const role = caller in roles ? roles[caller] : "";
+    const start = +SmartWeave.block.height;
+    const pageApprovalLength = +settings.pageApprovalLength;
+    const end = start + pageApprovalLength;
+    const balance = balances[caller];
+    const minVaultBalance = +settings.moderatorsMinVaultBalance;
+    const validWritingSystems: WritingSystem[] = ['LTR', 'RTL'];
+
+    if (method === "updateLanguage") {
+      activeLang = !!activeLang;
+    } else {
+      activeLang = true;
+    }
+    ContractAssert(
+      role.trim().toUpperCase() === "MODERATOR",
+      "Caller must be an admin"
+    );
+    ContractAssert(
+      typeof langCode === 'string' &&
+      !!langCode.length,
+      "langCode must be specified"
+    );
+    ContractAssert(
+      langCode.length <= langCodeLength,
+      `langCode is longer than max allowed length ${langCodeLength}.`
+    );
+    ContractAssert(
+      isoName.length <= langNameLength,
+      `isoName is longer than max allowed length ${langNameLength}.`
+    );
+    ContractAssert(
+      nativeName.length <= langNameLength,
+      `nativeName is longer than max allowed length ${langNameLength}.`
+    );
+    ContractAssert(
+      validWritingSystems.indexOf(writingSystem) >= 0,
+      `Invalid writing system.`
+    );
+    ContractAssert(
+      caller in vault,
+      "Caller needs to have locked balances."
+    );
+
+    let vaultBalance = this._get_vaultBalance(vault, caller, end);
+    if (vaultBalance < minVaultBalance) {
+      throw new ContractError(`Caller doesn't have ${minVaultBalance} or more tokens locked for enough time (start:${start}, end:${end}, vault:${vaultBalance}).`);
+    }
+    if (method === "addLanguage" &&
+        Object.prototype.hasOwnProperty.call(languages, langCode)) {
+      throw new ContractError("LangCode already exists!"); 
+    } else if (method === "updateLanguage" &&
+        !Object.prototype.hasOwnProperty.call(languages, langCode)) {
+      throw new ContractError("LangCode does not exist!"); 
+    }
+    // Write changes
+    languages[langCode] = {
+      "active": activeLang,
+      "iso_name": isoName,
+      "native_name": nativeName,
+      "writing_system": writingSystem
+    };
+    if (method === "addLanguage") {
+      pages[langCode] = {};
+      categories[langCode] = {};
+    }
   	return { state:this.state };
   }
 
-  addCategory(
-    langCode: string,
-    label: string,
-    slug: string,
-    parent: string|null,
-    order: number
-  ): { state:ArWikiContractState } {
-  	return { state:this.state };
-  }
-
-  updateCategory(
+  public addUpdateCategory(
+    method: string,
     langCode: string,
     label: string,
     slug: string,
     parent: string|null,
     order: number,
-    activeCategory: boolean
+    activeCategory?: boolean
   ): { state:ArWikiContractState } {
+    const caller = this.caller;
+    const roles = this.state.roles;
+    const settings = this.state.settings;
+    const balances = this.state.balances;
+    const categories = this.state.categories;
+    const vault = this.state.vault;
+    const categoryLabelLength = 50;
+    const categorySlugMaxLength = 50;
+    langCode = langCode.trim().toLowerCase();
+    label = label.trim();
+    slug = slug.trim();
+    parent = parent && parent.trim() ? parent.trim() : null;
+    const role = caller in roles ? roles[caller] : "";
+    order = +order;
+    const start = +SmartWeave.block.height;
+    const pageApprovalLength = +settings.pageApprovalLength;
+    const end = start + pageApprovalLength;
+    const balance = balances[caller];
+    const minVaultBalance = +settings.moderatorsMinVaultBalance;
+    if (method === "updateCategory") {
+      activeCategory = !!activeCategory;
+    } else {
+      activeCategory = true;
+    }
+    ContractAssert(
+      role.trim().toUpperCase() === "MODERATOR",
+      "Caller must be an admin"
+    );
+    ContractAssert(
+      typeof langCode === 'string' && 
+      !!langCode.length,
+      "langCode must be specified"
+    );
+    ContractAssert(
+      Object.prototype.hasOwnProperty.call(categories, langCode),
+      "LangCode does not exist! ${langCode}"
+    );
+    ContractAssert(
+      label.length <= categoryLabelLength,
+      `label is longer than max allowed length ${categoryLabelLength}.`
+    );
+    ContractAssert(
+      slug.length <= categorySlugMaxLength,
+      `slug is longer than max allowed length ${categorySlugMaxLength}.`
+    );
+
+    if (parent && !(parent in categories[langCode])) {
+      throw new ContractError(`Parent id is not a valid category ${parent}.`)
+    }
+    ContractAssert(
+      Number.isInteger(order) && order >= 0,
+      '"order" must be a positive integer.'
+    );
+    ContractAssert(
+      caller in vault,
+      "Caller needs to have locked balances."
+    );
+    
+    let vaultBalance = this._get_vaultBalance(vault, caller, end);
+    if (vaultBalance < minVaultBalance) {
+      throw new ContractError(`Caller doesn't have ${minVaultBalance} or more tokens locked for enough time (start:${start}, end:${end}, vault:${vaultBalance}).`);
+    }
+    if (method === "addCategory" &&
+        Object.prototype.hasOwnProperty.call(categories[langCode], slug)) {
+      throw new ContractError("Category already exists!"); 
+    } else if (method === "updateCategory" &&
+        !Object.prototype.hasOwnProperty.call(categories[langCode], slug)) {
+      throw new ContractError("Category does not exist!"); 
+    }
+    ContractAssert(
+      slug !== parent,
+      "Slug and parent_id must be different!"
+    );
+    // Write changes
+    categories[langCode][slug] = {
+      label: label,
+      order: order,
+      active: activeCategory,
+      parent_id: parent
+    };
+
   	return { state:this.state };
   }
 
-  updatePageProperties(
+  public updatePageProperties(
     langCode: string,
     slug: string,
-    order: string,
+    order: number,
     showInMenu: boolean,
     showInMainPage: boolean,
     showInFooter: boolean,
     nft: string
   ): { state:ArWikiContractState } {
+    const caller = this.caller;
+    const roles = this.state.roles;
+    const settings = this.state.settings;
+    const balances = this.state.balances;
+    const pages = this.state.pages;
+    const vault = this.state.vault;
+    langCode = langCode.trim().toLowerCase();
+    slug = slug.trim();
+    const role = caller in roles ? roles[caller] : "";
+    order = +order;
+    const start = +SmartWeave.block.height;
+    const pageApprovalLength = +settings.pageApprovalLength;
+    const end = start + pageApprovalLength;
+    const balance = balances[caller];
+    const minVaultBalance = +settings.moderatorsMinVaultBalance;
+    showInMenu = !!showInMenu;
+    showInMainPage = !!showInMainPage;
+    showInFooter = !!showInFooter;
+    nft = nft.trim();
+    ContractAssert(
+      role.trim().toUpperCase() === "MODERATOR",
+      "Caller must be an admin"
+    );
+    ContractAssert(
+      typeof langCode === 'string' &&
+      !!langCode.length,
+      "langCode must be specified"
+    );
+    ContractAssert(
+      Object.prototype.hasOwnProperty.call(pages, langCode),
+      "LangCode does not exist! ${langCode}"
+    );
+    ContractAssert(
+      Number.isInteger(order) && order >= 0,
+      '"order" must be a positive integer.'
+    );
+    ContractAssert(
+      caller in vault,
+      "Caller needs to have locked balances."
+    );
+
+    let vaultBalance = this._get_vaultBalance(vault, caller, end);
+    ContractAssert(
+      vaultBalance >= minVaultBalance,
+      `Caller doesn't have ${minVaultBalance} or more tokens locked for enough time (start:${start}, end:${end}, vault:${vaultBalance}).`
+    );
+    ContractAssert(
+      Object.prototype.hasOwnProperty.call(pages[langCode], slug),
+      "Page does not exist!"
+    );
+    
+    if (nft && !_isValidArweaveAddress(nft)) {
+      throw new ContractError("Invalid NFT address!"); 
+    }
+
+    // Write changes
+    pages[langCode][slug].order = order;
+    pages[langCode][slug].nft = nft;
+    pages[langCode][slug].showInMenu = showInMenu;
+    pages[langCode][slug].showInMainPage = showInMainPage;
+    pages[langCode][slug].showInFooter = showInFooter;
+
   	return { state:this.state };
   }
 
+  // Override parent method
   // Add stakes in _calculate_total_supply
   public proposeMint(
     vote: Vote,
@@ -168,7 +768,8 @@ export class ArWikiContract
     const settings = this.state.settings;
     const lockMinLength = settings.lockMinLength ? settings.lockMinLength : 0;
     const lockMaxLength = settings.lockMaxLength ? settings.lockMaxLength : 0;
-    let totalSupply = this._calculate_total_supply(vault, balances);
+    const stakes = this.state.stakes;
+    let totalSupply = this._calculate_total_supply(vault, balances, stakes);
 
     if (!recipient) {
       throw new ContractError("No recipient specified");
@@ -209,6 +810,7 @@ export class ArWikiContract
     return vote;
   }
 
+  // Override parent method
   // Add pageApprovalLength
   public proposeSet(
     vote: Vote,
@@ -309,6 +911,7 @@ export class ArWikiContract
     return vote;
   }
 
+  // Override parent method
   public finalize(id: number): { state:ArWikiContractState } {
     const settings = this.state.settings;
     const roles = this.state.roles;
@@ -417,6 +1020,7 @@ export class ArWikiContract
     return { state:this.state };
   }
 
+  // Override parent method
   public _calculate_total_supply(
     vault: Record<string, VaultParams[]>,
     balances: Record<string, number>,
@@ -435,6 +1039,19 @@ export class ArWikiContract
     }
     
     return totalSupply;
+  }
+
+  public _get_vaultBalance(
+    vault: Record<string, VaultParams[]>,
+    caller: string,
+    end:number
+  ) {
+    let vaultBalance = 0;
+    const filtered = vault[caller].filter((a) => a.end > end && a.start <= end);
+    for (let i = 0, j = filtered.length; i < j; i++) {
+      vaultBalance += filtered[i].balance;
+    }
+    return vaultBalance;
   }
 
 

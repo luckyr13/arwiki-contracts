@@ -21,7 +21,7 @@ export interface ArWikiContract extends PSTCommunityContract {
     pageValue: number
   ): { state:ArWikiContractState };
   stopPageSponsorshipAndDeactivatePage(langCode: string, slug: string): { state:ArWikiContractState };
-  balanceDetail(target: string|undefined): {result: {target:string, unlockedBalance:number, vaultBalance:number, stakingBalance:number, ticker:string}};
+  balanceDetail(target?: string): {result: {target:string, unlockedBalance:number, vaultBalance:number, stakingBalance:number, ticker:string}};
   addPageUpdate(
     langCode: string,
     slug: string,
@@ -30,27 +30,16 @@ export interface ArWikiContract extends PSTCommunityContract {
     pageValue: number,
     category: string
   ): { state:ArWikiContractState };
-  addLanguage(
-    langCode: string,
-    writingSystem: WritingSystem,
-    isoName: string,
-    nativeName: string
-  ): { state:ArWikiContractState };
-  updateLanguage(
+  addUpdateLanguage(
+    method: string,
     langCode: string,
     writingSystem: WritingSystem,
     isoName: string,
     nativeName: string,
-    activeLang: boolean
+    activeLang?: boolean
   ): { state:ArWikiContractState };
-  addCategory(
-    langCode: string,
-    label: string,
-    slug: string,
-    parent: string|null,
-    order: number
-  ): { state:ArWikiContractState };
-  updateCategory(
+  addUpdateCategory(
+    method: string,
     langCode: string,
     label: string,
     slug: string,
@@ -61,7 +50,7 @@ export interface ArWikiContract extends PSTCommunityContract {
   updatePageProperties(
     langCode: string,
     slug: string,
-    order: string,
+    order: number,
     showInMenu: boolean,
     showInMainPage: boolean,
     showInFooter: boolean,
