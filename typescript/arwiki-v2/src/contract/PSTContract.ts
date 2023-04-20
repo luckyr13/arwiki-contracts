@@ -22,7 +22,7 @@ export class PSTContract implements PSTContractInterface {
 		this.caller = this.action.caller;
 	}
 
-  public balance(target: string|undefined): {
+  public balance(target?: string): {
     result: {target: string, balance: number, ticker: string}
   } {
     const ticker = this.state.ticker;

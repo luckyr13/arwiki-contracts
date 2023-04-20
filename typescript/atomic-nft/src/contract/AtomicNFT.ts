@@ -15,7 +15,7 @@ export class AtomicNFT implements AtomicNFTBase {
     this.caller = this.action.caller;
   }
 
-  public balance(target: string|undefined): {
+  public balance(target?: string): {
     result:{ target:string, ticker:string, balance:number }
   } {
     const ticker = this.state.ticker;

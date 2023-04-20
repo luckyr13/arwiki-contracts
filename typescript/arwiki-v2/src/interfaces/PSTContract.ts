@@ -9,7 +9,7 @@ export interface PSTContract {
 	action: ContractInteraction;
   input: Record<string, any>;
   caller: string;
-  balance(target: string|undefined): {result: {target:string, balance:number, ticker:string}};
+  balance(target?: string): {result: {target:string, balance:number, ticker:string}};
 	transfer(target: string, qty: number): { state:PSTContractState };
 	evolve(value: string): { state:PSTContractState };
 }
