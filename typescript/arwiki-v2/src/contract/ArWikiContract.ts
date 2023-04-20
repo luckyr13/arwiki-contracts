@@ -357,6 +357,7 @@ export class ArWikiContract
     const balances = this.state.balances;
     const vault = this.state.vault;
     const stakes = this.state.stakes;
+    const ticker = this.state.ticker;
     let unlockedBalance = 0;
     let vaultBalance = 0;
     let stakingBalance = 0;
@@ -854,7 +855,7 @@ export class ArWikiContract
         throw new ContractError(`pageApprovalLength must be a positive integer.`);
       }
       if (value <= settings.voteLength) {
-        throw new ContractError(`pageApprovalLength must be greater than voteLength ${settings.get("voteLength")}.`);
+        throw new ContractError(`pageApprovalLength must be greater than voteLength ${settings.voteLength}.`);
       }
     } else if (key === "voteLength") {
       value = +value;
