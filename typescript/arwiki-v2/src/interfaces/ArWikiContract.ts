@@ -5,7 +5,7 @@
 import { PSTCommunityContract } from './PSTCommunityContract';
 import { PSTArWikiContractState, WritingSystem } from './PSTArWikiContractState';
 
-export interface PSTArWikiContract extends PSTCommunityContract {
+export interface ArWikiContract extends PSTCommunityContract {
   state: PSTArWikiContractState;
   approvePage(
     author: string,

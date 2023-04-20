@@ -4,7 +4,7 @@
 
 import { PSTCommunityContractState, VaultParams } from './PSTCommunityContractState';
 
-export interface PSTArWikiContractState extends PSTCommunityContractState {
+export interface ArWikiContractState extends PSTCommunityContractState {
 	pages: Record<string, Record<string, ArWikiPageProperties>>;
   categories: Record<string, Record<string, ArWikiCategory>>;
   languages: Record<string, ArWikiLanguage>;
