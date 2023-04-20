@@ -21,10 +21,11 @@ export class AtomicNFT implements AtomicNFTBase {
     const ticker = this.state.ticker;
     let balance = 0;
     const balances = this.state.balances;
+    const caller = this.caller;
 
     // Is target defined?
     if (!target) {
-      target = this.caller;
+      target = caller;
     }
 
     // Validate target
