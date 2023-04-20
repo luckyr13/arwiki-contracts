@@ -59,12 +59,12 @@ export class PSTCommunityContract
   }
 
   lock(qty: number, lockLength: number): { state:PSTCommunityContractState } {
-    const settings = this.state.settings;
+    const settings: Map<string, any> = new Map(this.state.settings);
     const balances = this.state.balances;
     const caller = this.caller;
     const balance = caller in balances ? balances[caller] : 0;
-    const lockMinLength = settings.lockMinLength ? settings.lockMinLength : 0;
-    const lockMaxLength = settings.lockMaxLength ? settings.lockMaxLength : 0;
+    const lockMinLength = settings.get('lockMinLength') ? settings.get('lockMinLength') : 0;
+    const lockMaxLength = settings.get('lockMaxLength') ? settings.get('lockMaxLength') : 0;
     const vault = this.state.vault;
     const start = +SmartWeave.block.height;
 
@@ -105,9 +105,9 @@ export class PSTCommunityContract
   }
 
   public increaseVault(lockLength: number, id: number): { state:PSTCommunityContractState } {
-    const settings = this.state.settings;
-    const lockMinLength = settings.lockMinLength ? settings.lockMinLength : 0;
-    const lockMaxLength = settings.lockMaxLength ? settings.lockMaxLength : 0;
+    const settings: Map<string, any> = new Map(this.state.settings);
+    const lockMinLength = settings.get('lockMinLength') ? settings.get('lockMinLength') : 0;
+    const lockMaxLength = settings.get('lockMaxLength') ? settings.get('lockMaxLength') : 0;
     const vault = this.state.vault;
     const caller = this.caller;
     const currentHeight = +SmartWeave.block.height;
@@ -192,7 +192,7 @@ export class PSTCommunityContract
     const noteVoteMaxLength = 200;
     const caller = this.caller;
     const vault = this.state.vault;
-    const settings = this.state.settings;
+    const settings: Map<string, any> = new Map(this.state.settings);
     const votes = this.state.votes;
 
     ContractAssert(
@@ -219,7 +219,7 @@ export class PSTCommunityContract
 
     // Validate lock time
     const start = +SmartWeave.block.height;
-    const end = start + (+settings.voteLength);
+    const end = start + (+settings.get('voteLength'));
     const vaultBalance = this._get_vaultBalance(vault, caller, end);
     ContractAssert(
       !!vaultBalance,
@@ -270,9 +270,9 @@ export class PSTCommunityContract
     lockLength?: number): Vote {
     const vault = this.state.vault;
     const balances = this.state.balances;
-    const settings = this.state.settings;
-    const lockMinLength = settings.lockMinLength ? settings.lockMinLength : 0;
-    const lockMaxLength = settings.lockMaxLength ? settings.lockMaxLength : 0;
+    const settings: Map<string, any> = new Map(this.state.settings);
+    const lockMinLength = settings.get('lockMinLength') ? settings.get('lockMinLength') : 0;
+    const lockMaxLength = settings.get('lockMaxLength') ? settings.get('lockMaxLength') : 0;
     let totalSupply = this._calculate_total_supply(vault, balances);
 
     if (!recipient) {
@@ -333,7 +333,9 @@ export class PSTCommunityContract
     key?: string,
     value?:string|number,
     recipient?:string): Vote {
-    const settings = this.state.settings;
+    const settings: Map<string, any> = new Map(this.state.settings);
+    const lockMinLength = settings.get('lockMinLength') ? settings.get('lockMinLength') : 0;
+    const lockMaxLength = settings.get('lockMaxLength') ? settings.get('lockMaxLength') : 0;
     const roleValueVoteMaxLength = 50;
     const keyVoteMaxLength = 50;
     const keyStringValueVoteMaxLength = 50;
@@ -356,12 +358,12 @@ export class PSTCommunityContract
       }
     } else if (key === "lockMinLength") {
       value = +value;
-      if (!Number.isInteger(value) || value < 1 || value >= settings.lockMaxLength) {
+      if (!Number.isInteger(value) || value < 1 || value >= lockMaxLength) {
         throw new ContractError("lockMinLength cannot be less than 1 and cannot be equal or greater than lockMaxLength.");
       }
     } else if (key === "lockMaxLength") {
       value = +value;
-      if (!Number.isInteger(value) || value <= settings.lockMinLength) {
+      if (!Number.isInteger(value) || value <= lockMinLength) {
         throw new ContractError("lockMaxLength cannot be less than or equal to lockMinLength.");
       }
     } else if (key === "voteLength") {
@@ -423,10 +425,9 @@ export class PSTCommunityContract
     const votes = this.state.votes;
     const caller = this.caller;
     const vault = this.state.vault;
-    const voteLength = this.state.settings.voteLength ?
-      this.state.settings.voteLength :
-      0;
-
+    const settings: Map<string, any> = new Map(this.state.settings);
+    const voteLength = settings.get('voteLength') ? settings.get('voteLength') : 0;
+    
     ContractAssert(
       Number.isInteger(id),
       'Invalid value for "id". Must be an integer.'
@@ -469,20 +470,14 @@ export class PSTCommunityContract
   }
 
   public finalize(id: number): { state:PSTCommunityContractState } {
-    const settings = this.state.settings;
     const roles = this.state.roles;
     const votes = this.state.votes;
     const vote = votes[id];
     const qty = vote.qty;
-    const voteLength = this.state.settings.voteLength ?
-      this.state.settings.voteLength :
-      0;
-    const quorum = this.state.settings.quorum ?
-      this.state.settings.quorum :
-      0;
-    const support = this.state.settings.support ?
-      this.state.settings.support :
-      0;
+    const settings: Map<string, any> = new Map(this.state.settings);
+    const voteLength = settings.get('voteLength') ? settings.get('voteLength') : 0;
+    const quorum = settings.get('quorum') ? settings.get('quorum') : 0;
+    const support = settings.get('support') ? settings.get('support') : 0;
     const vault = this.state.vault;
     const balances = this.state.balances;
 
@@ -565,7 +560,8 @@ export class PSTCommunityContract
           if (!vote.key) {
             throw new ContractError('vote.key is undefined');
           }
-          settings[vote.key] = vote.value;
+          settings.set(vote.key, vote.value);
+          this.state.settings = Array.from(settings);
         }
       }
     } else {

@@ -9,7 +9,7 @@ import { PSTContractState } from './PSTContractState';
 export interface PSTCommunityContractState extends PSTContractState {
 	name: string;
   votes: Vote[];
-  settings: BaseCommunitySettings;
+  settings: Array<[string, any]>;
   balances: Record<string, number>;
   vault: Record<string, VaultParams[]>;
   roles: Record<string, string>;
@@ -40,16 +40,4 @@ export interface VaultParams {
   balance: number;
   start: number;
   end: number;
-}
-
-export interface BaseCommunitySettings {
-  lockMinLength: number;
-  lockMaxLength: number;
-  voteLength: number;
-  quorum: number;
-  support: number;
-  communityLogo: string;
-  communityDescription: string;
-  communityAppUrl: string;
-  [key: string]: string|number;
 }

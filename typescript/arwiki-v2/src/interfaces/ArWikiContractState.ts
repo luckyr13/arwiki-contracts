@@ -4,8 +4,7 @@
 
 import { 
   PSTCommunityContractState,
-  VaultParams,
-  BaseCommunitySettings
+  VaultParams
 } from './PSTCommunityContractState';
 
 export interface ArWikiContractState extends PSTCommunityContractState {
@@ -14,7 +13,6 @@ export interface ArWikiContractState extends PSTCommunityContractState {
   languages: Record<string, ArWikiLanguage>;
   stakes: Record<string, Record<string, Record<string, number>>>;
   vault: Record<string, ArWikiVaultParams[]>;
-  settings: ArWikiSettings;
 }
 
 export interface ArWikiPageProperties {
@@ -58,9 +56,3 @@ export interface ArWikiVaultParams extends VaultParams {
 }
 
 export type WritingSystem = 'RTL'|'LTR';
-
-
-export interface ArWikiSettings extends BaseCommunitySettings {
-  moderatorsMinVaultBalance: number;
-  pageApprovalLength: number;
-}

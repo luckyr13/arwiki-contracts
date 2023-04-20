@@ -57,14 +57,14 @@ export class ArWikiContract
   ): { state:ArWikiContractState } {
     const caller = this.caller;
     const roles = this.state.roles;
-    const settings = this.state.settings;
+    const settings: Map<string, any> = new Map(this.state.settings);
     const balances = this.state.balances;
     const vault = this.state.vault;
     const stakes = this.state.stakes;
     const order = 0;
     const role = caller in roles ? roles[caller] : "";
     const start = +SmartWeave.block.height;
-    const pageApprovalLength = +settings.pageApprovalLength;
+    const pageApprovalLength = +settings.get('pageApprovalLength');
     const end = start + pageApprovalLength;
     const balance = balances[caller];
     let totalSupply = this._calculate_total_supply(vault, balances, stakes);
@@ -217,14 +217,14 @@ export class ArWikiContract
     const balances = this.state.balances;
     const vault = this.state.vault;
     const stakes = this.state.stakes;
-    const settings = this.state.settings;
+    const settings: Map<string, any> = new Map(this.state.settings);
     const pages = this.state.pages;
     const value = +pageValue;
     const role = caller in roles ? roles[caller] : "";
     const balance = +balances[caller];
     const currentHeight = +SmartWeave.block.height;
     let totalSupply = this._calculate_total_supply(vault, balances, stakes);
-    const pageApprovalLength = +settings.pageApprovalLength;
+    const pageApprovalLength = +settings.get('pageApprovalLength');
     const end = currentHeight + pageApprovalLength;
     ContractAssert(
       typeof langCode === 'string' &&
@@ -400,11 +400,11 @@ export class ArWikiContract
   ): { state:ArWikiContractState } {
     const roles = this.state.roles;
     const caller = this.caller;
-    const settings = this.state.settings;
+    const settings: Map<string, any> = new Map(this.state.settings);
     const vault = this.state.vault;
     const role = caller in roles ? roles[caller] : "";
     const currentHeight = +SmartWeave.block.height;
-    const pageApprovalLength = +settings.pageApprovalLength;
+    const pageApprovalLength = +settings.get('pageApprovalLength');
     const end = currentHeight + pageApprovalLength;
     const value = +pageValue;
     const pages = this.state.pages;
@@ -510,7 +510,7 @@ export class ArWikiContract
   ): { state:ArWikiContractState } {
     const caller = this.caller;
     const roles = this.state.roles;
-    const settings = this.state.settings;
+    const settings: Map<string, any> = new Map(this.state.settings);
     const balances = this.state.balances;
     const vault = this.state.vault;
     const languages = this.state.languages;
@@ -524,10 +524,10 @@ export class ArWikiContract
     nativeName = nativeName.trim();
     const role = caller in roles ? roles[caller] : "";
     const start = +SmartWeave.block.height;
-    const pageApprovalLength = +settings.pageApprovalLength;
+    const pageApprovalLength = +settings.get('pageApprovalLength');
     const end = start + pageApprovalLength;
     const balance = balances[caller];
-    const minVaultBalance = +settings.moderatorsMinVaultBalance;
+    const minVaultBalance = +settings.get('moderatorsMinVaultBalance');
     const validWritingSystems: WritingSystem[] = ['LTR', 'RTL'];
 
     if (method === "updateLanguage") {
@@ -601,7 +601,7 @@ export class ArWikiContract
   ): { state:ArWikiContractState } {
     const caller = this.caller;
     const roles = this.state.roles;
-    const settings = this.state.settings;
+    const settings: Map<string, any> = new Map(this.state.settings);
     const balances = this.state.balances;
     const categories = this.state.categories;
     const vault = this.state.vault;
@@ -614,10 +614,10 @@ export class ArWikiContract
     const role = caller in roles ? roles[caller] : "";
     order = +order;
     const start = +SmartWeave.block.height;
-    const pageApprovalLength = +settings.pageApprovalLength;
+    const pageApprovalLength = +settings.get('pageApprovalLength');
     const end = start + pageApprovalLength;
     const balance = balances[caller];
-    const minVaultBalance = +settings.moderatorsMinVaultBalance;
+    const minVaultBalance = +settings.get('moderatorsMinVaultBalance');
     if (method === "updateCategory") {
       activeCategory = !!activeCategory;
     } else {
@@ -694,7 +694,7 @@ export class ArWikiContract
   ): { state:ArWikiContractState } {
     const caller = this.caller;
     const roles = this.state.roles;
-    const settings = this.state.settings;
+    const settings: Map<string, any> = new Map(this.state.settings);
     const balances = this.state.balances;
     const pages = this.state.pages;
     const vault = this.state.vault;
@@ -703,10 +703,10 @@ export class ArWikiContract
     const role = caller in roles ? roles[caller] : "";
     order = +order;
     const start = +SmartWeave.block.height;
-    const pageApprovalLength = +settings.pageApprovalLength;
+    const pageApprovalLength = +settings.get('pageApprovalLength');
     const end = start + pageApprovalLength;
     const balance = balances[caller];
-    const minVaultBalance = +settings.moderatorsMinVaultBalance;
+    const minVaultBalance = +settings.get('moderatorsMinVaultBalance');
     showInMenu = !!showInMenu;
     showInMainPage = !!showInMainPage;
     showInFooter = !!showInFooter;
@@ -766,9 +766,9 @@ export class ArWikiContract
     lockLength?: number): Vote {
     const vault = this.state.vault;
     const balances = this.state.balances;
-    const settings = this.state.settings;
-    const lockMinLength = settings.lockMinLength ? settings.lockMinLength : 0;
-    const lockMaxLength = settings.lockMaxLength ? settings.lockMaxLength : 0;
+    const settings: Map<string, any> = new Map(this.state.settings);
+    const lockMinLength = settings.get('lockMinLength') ? settings.get('lockMinLength') : 0;
+    const lockMaxLength = settings.get('lockMaxLength') ? settings.get('lockMaxLength') : 0;
     const stakes = this.state.stakes;
     let totalSupply = this._calculate_total_supply(vault, balances, stakes);
 
@@ -818,10 +818,13 @@ export class ArWikiContract
     key?: string,
     value?:string|number,
     recipient?:string): Vote {
-    const settings = this.state.settings;
+    const settings: Map<string, any> = new Map(this.state.settings);
     const roleValueVoteMaxLength = 50;
     const keyVoteMaxLength = 50;
     const keyStringValueVoteMaxLength = 50;
+    const lockMinLength = settings.get('lockMinLength') ? settings.get('lockMinLength') : 0;
+    const lockMaxLength = settings.get('lockMaxLength') ? settings.get('lockMaxLength') : 0;
+    const voteLength = settings.get('voteLength') ? settings.get('voteLength') : 0;
 
     if (typeof key !== "string") {
       throw new ContractError("Data type of key not supported.");
@@ -841,12 +844,12 @@ export class ArWikiContract
       }
     } else if (key === "lockMinLength") {
       value = +value;
-      if (!Number.isInteger(value) || value < 1 || value >= settings.lockMaxLength) {
+      if (!Number.isInteger(value) || value < 1 || value >= lockMaxLength) {
         throw new ContractError("lockMinLength cannot be less than 1 and cannot be equal or greater than lockMaxLength.");
       }
     } else if (key === "lockMaxLength") {
       value = +value;
-      if (!Number.isInteger(value) || value <= settings.lockMinLength) {
+      if (!Number.isInteger(value) || value <= lockMinLength) {
         throw new ContractError("lockMaxLength cannot be less than or equal to lockMinLength.");
       }
     } else if (key === "pageApprovalLength") {
@@ -854,8 +857,8 @@ export class ArWikiContract
       if (!Number.isInteger(value) || value <= 0) {
         throw new ContractError(`pageApprovalLength must be a positive integer.`);
       }
-      if (value <= settings.voteLength) {
-        throw new ContractError(`pageApprovalLength must be greater than voteLength ${settings.voteLength}.`);
+      if (value <= voteLength) {
+        throw new ContractError(`pageApprovalLength must be greater than voteLength ${voteLength}.`);
       }
     } else if (key === "voteLength") {
       value = +value;
@@ -914,20 +917,14 @@ export class ArWikiContract
 
   // Override parent method
   public finalize(id: number): { state:ArWikiContractState } {
-    const settings = this.state.settings;
     const roles = this.state.roles;
     const votes = this.state.votes;
     const vote = votes[id];
     const qty = vote.qty;
-    const voteLength = this.state.settings.voteLength ?
-      this.state.settings.voteLength :
-      0;
-    const quorum = this.state.settings.quorum ?
-      this.state.settings.quorum :
-      0;
-    const support = this.state.settings.support ?
-      this.state.settings.support :
-      0;
+    const settings: Map<string, any> = new Map(this.state.settings);
+    const voteLength = settings.get('voteLength') ? settings.get('voteLength') : 0;
+    const quorum = settings.get('quorum') ? settings.get('quorum') : 0;
+    const support = settings.get('support') ? settings.get('support') : 0;
     const vault = this.state.vault;
     const balances = this.state.balances;
     const stakes = this.state.stakes;
@@ -1011,7 +1008,8 @@ export class ArWikiContract
           if (!vote.key) {
             throw new ContractError('vote.key is undefined');
           }
-          settings[vote.key] = vote.value;
+          settings.set(vote.key, vote.value);
+          this.state.settings = Array.from(settings);
         }
       }
     } else {
