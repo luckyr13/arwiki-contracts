@@ -51,4 +51,5 @@ export interface BaseCommunitySettings {
   communityLogo: string;
   communityDescription: string;
   communityAppUrl: string;
+  [key: string]: string|number;
 }
