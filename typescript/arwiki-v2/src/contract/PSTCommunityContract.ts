@@ -80,6 +80,7 @@ export class PSTCommunityContract
     );
     ContractAssert(
       !!balance &&
+      !isNaN(balance) &&
       Number.isInteger(balance) &&
       balance - qty >= 0,
       "Not enough balance."
@@ -221,7 +222,7 @@ export class PSTCommunityContract
     const end = start + (+settings.voteLength);
     const vaultBalance = this._get_vaultBalance(vault, caller, end);
     ContractAssert(
-      !vaultBalance,
+      !!vaultBalance,
       `Caller doesn't have tokens locked for enough time (start:${start}, end:${end}, vault:${vaultBalance}).`
     );
     
@@ -343,29 +344,28 @@ export class PSTCommunityContract
     if (!value) {
       throw new ContractError("Value is undefined.");
     }
-    if (key === "quorum" || key === "support" || 
-       key === "lockMinLength" ||
-       key === "lockMaxLength" || 
-       key === "voteLength") {
-      value = +value;
-    }
     if (key === "quorum") {
-      if (isNaN(+value) || value < 0.01 || value > 0.99) {
+      value = +value;
+      if (isNaN(value) || value < 0.01 || value > 0.99) {
         throw new ContractError("Quorum must be between 0.01 and 0.99.");
       }
     } else if (key === "support") {
-      if (isNaN(+value) || value < 0.01 || value > 0.99) {
+      value = +value;
+      if (isNaN(value) || value < 0.01 || value > 0.99) {
         throw new ContractError("Support must be between 0.01 and 0.99.");
       }
     } else if (key === "lockMinLength") {
+      value = +value;
       if (!Number.isInteger(value) || value < 1 || value >= settings.lockMaxLength) {
         throw new ContractError("lockMinLength cannot be less than 1 and cannot be equal or greater than lockMaxLength.");
       }
     } else if (key === "lockMaxLength") {
+      value = +value;
       if (!Number.isInteger(value) || value <= settings.lockMinLength) {
         throw new ContractError("lockMaxLength cannot be less than or equal to lockMinLength.");
       }
     } else if (key === "voteLength") {
+      value = +value;
       if (!Number.isInteger(value) || value <= 0) {
         throw new ContractError("voteLength must be > 0");
       }
@@ -452,7 +452,7 @@ export class PSTCommunityContract
       "Caller has already voted."
     );
     ContractAssert(
-      +SmartWeave.block.height >= vote.start + voteLength,
+      +SmartWeave.block.height < vote.start + voteLength,
       "Vote has already concluded."
     );
 
@@ -585,7 +585,7 @@ export class PSTCommunityContract
     }
     const role = target in roles ? roles[target] : "";
     if (!role.trim().length) {
-      throw new Error("Target doesn't have a role specified.");
+      throw new ContractError("Target doesn't have a role specified.");
     }
     return {result: {target, role}};
   }
