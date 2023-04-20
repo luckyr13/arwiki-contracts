@@ -1,7 +1,10 @@
 import { ArWikiContract } from './contract/ArWikiContract';
 import { ArWikiContractState } from './interfaces/ArWikiContractState';
 
-async function handle(state: ArWikiContractState, action: ContractInteraction) {
+export async function handle(
+  state: ArWikiContractState,
+  action: ContractInteraction
+) {
   const arwiki = new ArWikiContract(state, action);
   const input = action.input;
   const method = action.input.function;

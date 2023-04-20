@@ -3,10 +3,10 @@
 */
 
 import { PSTCommunityContract } from './PSTCommunityContract';
-import { PSTArWikiContractState, WritingSystem } from './PSTArWikiContractState';
+import { ArWikiContractState, WritingSystem } from './ArWikiContractState';
 
 export interface ArWikiContract extends PSTCommunityContract {
-  state: PSTArWikiContractState;
+  state: ArWikiContractState;
   approvePage(
     author: string,
     pageTX: string,
@@ -14,13 +14,13 @@ export interface ArWikiContract extends PSTCommunityContract {
     langCode: string,
     slug: string,
     category: string
-  ): { state:PSTArWikiContractState };
+  ): { state:ArWikiContractState };
   updatePageSponsor(
     langCode: string,
     slug: string,
     pageValue: number
-  ): { state:PSTArWikiContractState };
-  stopPageSponsorshipAndDeactivatePage(langCode: string, slug: string): { state:PSTArWikiContractState };
+  ): { state:ArWikiContractState };
+  stopPageSponsorshipAndDeactivatePage(langCode: string, slug: string): { state:ArWikiContractState };
   balanceDetail(target: string|undefined): {result: {target:string, unlockedBalance:number, vaultBalance:number, stakingBalance:number, ticker:string}};
   addPageUpdate(
     langCode: string,
@@ -29,27 +29,27 @@ export interface ArWikiContract extends PSTCommunityContract {
     author: string,
     pageValue: number,
     category: string
-  ): { state:PSTArWikiContractState };
+  ): { state:ArWikiContractState };
   addLanguage(
     langCode: string,
     writingSystem: WritingSystem,
     isoName: string,
     nativeName: string
-  ): { state:PSTArWikiContractState };
+  ): { state:ArWikiContractState };
   updateLanguage(
     langCode: string,
     writingSystem: WritingSystem,
     isoName: string,
     nativeName: string,
     activeLang: boolean
-  ): { state:PSTArWikiContractState };
+  ): { state:ArWikiContractState };
   addCategory(
     langCode: string,
     label: string,
     slug: string,
     parent: string|null,
     order: number
-  ): { state:PSTArWikiContractState };
+  ): { state:ArWikiContractState };
   updateCategory(
     langCode: string,
     label: string,
@@ -57,7 +57,7 @@ export interface ArWikiContract extends PSTCommunityContract {
     parent: string|null,
     order: number,
     activeCategory: boolean
-  ): { state:PSTArWikiContractState };
+  ): { state:ArWikiContractState };
   updatePageProperties(
     langCode: string,
     slug: string,
@@ -66,6 +66,6 @@ export interface ArWikiContract extends PSTCommunityContract {
     showInMainPage: boolean,
     showInFooter: boolean,
     nft: string
-  ): { state:PSTArWikiContractState };
+  ): { state:ArWikiContractState };
 
 }
