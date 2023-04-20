@@ -8,5 +8,5 @@ The smart contracts (smartweave) source code behind the ArWiki platform. ArWiki 
 
 - ArWiki Github: https://github.com/luckyr13/arwiki
 - ArWiki V1: https://v1.arwiki.wiki
-- Arweave Contract Address: ewepANKEVffP0cm_XKjwTYhSBqaiQrJbVrCcBiWqw-s
+- ArWiki V1 Smartweave Contract Address: ewepANKEVffP0cm_XKjwTYhSBqaiQrJbVrCcBiWqw-s
 - ArWiki v2: https://arwiki.wiki
