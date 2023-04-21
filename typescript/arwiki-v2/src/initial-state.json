@@ -72,5 +72,8 @@
         "en":{
 
         }
-    }
+    },
+    "owner": "",
+    "canEvolve": false,
+    "evolve": null
 }
