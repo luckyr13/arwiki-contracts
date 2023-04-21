@@ -129,6 +129,11 @@ export class PSTContract implements PSTContractInterface {
 
     if (canEvolve) {
       ContractAssert(
+        !!value &&
+        _isValidArweaveAddress(value),
+        "New contract must have a valid arweave address"
+      );
+      ContractAssert(
         owner === caller,
         `Only the owner can evolve a contract.`
       );
