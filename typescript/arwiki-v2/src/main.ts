@@ -159,6 +159,9 @@ export async function handle(
       showInFooter,
       nft
     );
+  } else if (method === 'evolve') {
+    const value = input.value;
+    return arwiki.evolve(value);
   }
 
 	throw new ContractError(`No function supplied or function not recognised: "${input.function}"`);
