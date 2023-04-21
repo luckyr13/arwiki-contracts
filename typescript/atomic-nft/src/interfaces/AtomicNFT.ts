@@ -13,5 +13,5 @@ export interface AtomicNFT {
     input: Record<string, any>;
     caller: string;
     balance(target?: string): {result:{target:string, ticker:string, balance:number}};
-    transfer(target: string, qty: number): { state:AtomicNFTState };
+    transfer(target: string, qty: number): Promise<{ state:AtomicNFTState }>;
 }

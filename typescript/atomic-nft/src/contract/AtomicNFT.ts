@@ -46,7 +46,7 @@ export class AtomicNFT implements AtomicNFTBase {
     return { result: { target, ticker, balance }};
   }
 
-  public transfer(target: string, qty: number): { state:AtomicNFTState } {
+  public async transfer(target: string, qty: number): Promise<{ state:AtomicNFTState }> {
     const balances = this.state.balances;
     const caller = this.caller;
 

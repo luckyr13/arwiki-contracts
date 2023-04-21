@@ -5,5 +5,10 @@
 	"description": "",
 	"ticker": "YOUR_TICKER",
 	"contentType": "",
-	"createdAt": 0
+	"createdAt": 0,
+	"linkedContract": "",
+	"linkedProperties": {
+		"slug": "",
+		"lang": ""
+	}
 }
