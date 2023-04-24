@@ -27,7 +27,7 @@ function __awaiter(thisArg, _arguments, P, generator) {
 *  https://github.com/CommunityXYZ/community-js/blob/master/src/utils.ts#L23
 */
 function _isValidArweaveAddress(address) {
-    if (address && typeof address === 'string') {
+    if (address && typeof address === 'string' && address.length === 43) {
         return /[a-z0-9_-]{43}/i.test(address);
     }
     return false;

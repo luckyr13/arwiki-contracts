@@ -27,7 +27,7 @@ function __awaiter(thisArg, _arguments, P, generator) {
 *  https://github.com/CommunityXYZ/community-js/blob/master/src/utils.ts#L23
 */
 function _isValidArweaveAddress(address) {
-    if (address && typeof address === 'string') {
+    if (address && typeof address === 'string' && address.length === 43) {
         return /[a-z0-9_-]{43}/i.test(address);
     }
     return false;
@@ -96,6 +96,8 @@ class PSTContract {
         const owner = this.state.owner;
         const caller = this.caller;
         if (canEvolve) {
+            ContractAssert(!!value &&
+                _isValidArweaveAddress(value), "New contract must have a valid arweave address");
             ContractAssert(owner === caller, `Only the owner can evolve a contract.`);
             this.state.evolve = value;
         }
@@ -1442,6 +1444,12 @@ function handle(state, action) {
             const nft = input.nft;
             return arwiki.updatePageProperties(langCode, slug, order, showInMenu, showInMainPage, showInFooter, nft);
         }
+        else if (method === 'evolve') {
+            const value = input.value;
+            return arwiki.evolve(value);
+        }
         throw new ContractError(`No function supplied or function not recognised: "${input.function}"`);
     });
 }
+
+export { handle };
