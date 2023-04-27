@@ -650,9 +650,17 @@ class ArWikiContract extends PSTCommunityContract {
         ContractAssert(typeof pageTX === 'string' &&
             !!pageTX.trim().length, `PageTX must be specified.`);
         ContractAssert(_isValidArweaveAddress(pageTX), "Invalid pageTX.");
-        ContractAssert(caller in vault, "Caller needs to have locked balances.");
+        /*
+        ContractAssert(
+          caller in vault,
+          "Caller needs to have locked balances."
+        );
         let vaultBalance = this._get_vaultBalance(vault, caller, end);
-        ContractAssert(vaultBalance >= value, `Caller doesn't have ${value} or more tokens locked for enough time (start:${start}, end:${end}, vault:${vaultBalance}).`);
+        ContractAssert(
+          vaultBalance >= value,
+          `Caller doesn't have ${value} or more tokens locked for enough time (start:${start}, end:${end}, vault:${vaultBalance}).`
+        );
+        */
         ContractAssert(Object.prototype.hasOwnProperty.call(pages, langCode), "Invalid LangCode (pages)!");
         ContractAssert(Object.prototype.hasOwnProperty.call(categories, langCode), "Invalid LangCode (categories)!");
         ContractAssert(!Object.prototype.hasOwnProperty.call(pages[langCode], slug), "Slug already taken!");
@@ -717,14 +725,15 @@ class ArWikiContract extends PSTCommunityContract {
         const balances = this.state.balances;
         const vault = this.state.vault;
         const stakes = this.state.stakes;
-        const settings = new Map(this.state.settings);
+        new Map(this.state.settings);
         const pages = this.state.pages;
         const value = +pageValue;
         caller in roles ? roles[caller] : "";
         const balance = +balances[caller];
-        +SmartWeave.block.height;
+        // const currentHeight = +SmartWeave.block.height;
         let totalSupply = this._calculate_total_supply(vault, balances, stakes);
-        +settings.get('pageApprovalLength');
+        // const pageApprovalLength = +settings.get('pageApprovalLength');
+        // const end = currentHeight + pageApprovalLength;
         ContractAssert(typeof langCode === 'string' &&
             !!langCode.trim().length, "LangCode must be specified.");
         ContractAssert(typeof slug === 'string' &&

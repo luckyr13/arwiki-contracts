@@ -119,16 +119,17 @@ export class ArWikiContract
       _isValidArweaveAddress(pageTX),
       "Invalid pageTX."
     );
+    /*
     ContractAssert(
       caller in vault,
       "Caller needs to have locked balances."
     );
-    
     let vaultBalance = this._get_vaultBalance(vault, caller, end);
     ContractAssert(
       vaultBalance >= value,
       `Caller doesn't have ${value} or more tokens locked for enough time (start:${start}, end:${end}, vault:${vaultBalance}).`
     );
+    */
     ContractAssert(
       Object.prototype.hasOwnProperty.call(pages, langCode),
       "Invalid LangCode (pages)!"
@@ -222,10 +223,10 @@ export class ArWikiContract
     const value = +pageValue;
     const role = caller in roles ? roles[caller] : "";
     const balance = +balances[caller];
-    const currentHeight = +SmartWeave.block.height;
+    // const currentHeight = +SmartWeave.block.height;
     let totalSupply = this._calculate_total_supply(vault, balances, stakes);
-    const pageApprovalLength = +settings.get('pageApprovalLength');
-    const end = currentHeight + pageApprovalLength;
+    // const pageApprovalLength = +settings.get('pageApprovalLength');
+    // const end = currentHeight + pageApprovalLength;
     ContractAssert(
       typeof langCode === 'string' &&
       !!langCode.trim().length,
