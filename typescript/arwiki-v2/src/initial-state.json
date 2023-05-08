@@ -62,6 +62,46 @@
         [
             "communityAppName",
             ""
+        ],
+        [
+            "protocolName",
+            ""
+        ],
+        [
+            "protocolVersion",
+            ""
+        ],
+        [
+            "socialMediaGitHub",
+            ""
+        ],
+        [
+            "socialMediaDiscord",
+            ""
+        ],
+        [
+            "socialMediaTwitter",
+            ""
+        ],
+        [
+            "socialMediaYoutube",
+            ""  
+        ],
+        [
+            "socialMediaInstagram",
+            ""
+        ],
+        [
+            "socialMediaFacebook",
+            ""
+        ],
+        [
+            "socialMediaPublicSquare",
+            ""
+        ],
+        [
+            "socialMediaNarrative",
+            ""
         ]
     ],
     "languages":{
